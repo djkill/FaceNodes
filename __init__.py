@@ -72,12 +72,12 @@ class FaceCompare:
 
     CATEGORY = "Facial"
 
-    def test(self, image1, image2):
+    def test(self, image1, image2, metric):
         tensor1 = image1*255
         tensor1 = np.array(tensor1, dtype=np.uint8)        
         tensor2 = image2*255
         tensor2 = np.array(tensor2, dtype=np.uint8)        
-        objs = DeepFace.verify(tensor1[0], tensor1[2], distance_metric = metric)
+        objs = DeepFace.verify(tensor1[0], tensor2[0], distance_metric = metric)
         res = json.dumps(objs,)
         print(res)
         return {"ui": {"tags": res}, "result": (res,)}
