@@ -1,5 +1,9 @@
 from deepface import DeepFace
 import json 
+import cv2
+import numpy as np
+from PIL import Image
+import torch
 
 class FaceAnalyze:
 
@@ -12,25 +16,50 @@ class FaceAnalyze:
         return {
             "required": {
                 "image": ("IMAGE",),
-                "int_field": ("INT", {
-                    "default": 0, 
-                    "min": 0, #Minimum value
-                    "max": 4096, #Maximum value
-                    "step": 64, #Slider's step
-                    "display": "number" # Cosmetic only: display as "number" or "slider"
-                }),
-                "float_field": ("FLOAT", {
-                    "default": 1.0,
-                    "min": 0.0,
-                    "max": 10.0,
-                    "step": 0.01,
-                    "round": 0.001, #The value represeting the precision to round to, will be set to the step value by default. Can be set to False to disable rounding.
-                    "display": "number"}),
-                "print_to_screen": (["enable", "disable"],),
-                "string_field": ("STRING", {
-                    "multiline": False, #True if you want the field to look like the one on the ClipTextEncode node
-                    "default": "Hello World!"
-                }),
+                "backend": (['opencv', 
+                              'ssd', 
+                              'dlib', 
+                              'mtcnn', 
+                              'retinaface', 
+                              'mediapipe',
+                              'yolov8',
+                              'yunet',
+                              'fastmtcnn',], {}),
+                                        },
+        }
+
+    RETURN_TYPES = ("STRING",)
+    #RETURN_NAMES = ("image_output_name",)
+
+    FUNCTION = "test"
+
+    #OUTPUT_NODE = False
+
+    CATEGORY = "Facial"
+
+    def test(self, image, backend):
+        tensor = image*255
+        tensor = np.array(tensor, dtype=np.uint8)        
+        objs = DeepFace.analyze(tensor[0], actions=("age", "gender"), silent=False, enforce_detection=False, detector_backend = backend)
+        res = json.dumps(objs,)
+        print(res)
+        return {"ui": {"tags": res}, "result": (res,)}
+
+class FaceCompare:
+
+    def __init__(self):
+        pass
+    
+    @classmethod
+    def INPUT_TYPES(s):
+
+        return {
+            "required": {
+                "image1": ("IMAGE",),
+                "image2": ("IMAGE",),
+                "metric": (['euclidean_l2', 
+                              'cosine', 
+                              'euclidean',], {}),
             },
         }
 
@@ -43,19 +72,26 @@ class FaceAnalyze:
 
     CATEGORY = "Facial"
 
-    def test(self, image, string_field, int_field, float_field, print_to_screen):
-        objs = DeepFace.analyze(image, actions=("age", "gender", "race", "emotion"), silent=True)
-        str = json.dumps(objs,)
-        return (str)
+    def test(self, image1, image2):
+        tensor1 = image1*255
+        tensor1 = np.array(tensor1, dtype=np.uint8)        
+        tensor2 = image2*255
+        tensor2 = np.array(tensor2, dtype=np.uint8)        
+        objs = DeepFace.verify(tensor1[0], tensor1[2], distance_metric = metric)
+        res = json.dumps(objs,)
+        print(res)
+        return {"ui": {"tags": res}, "result": (res,)}
 
 
 # A dictionary that contains all nodes you want to export with their names
 # NOTE: names should be globally unique
 NODE_CLASS_MAPPINGS = {
-    "FaceAnalyze": FaceAnalyze
+    "FaceAnalyze": FaceAnalyze,
+    "FaceCompare": FaceCompare,
 }
 
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "FaceAnalyze": "Facial Attribute Analysis"
+    "FaceAnalyze": "Facial Attribute Analysis",
+    "FaceCompare": "Face similarity"
 }
