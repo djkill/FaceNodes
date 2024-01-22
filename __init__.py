@@ -8,6 +8,7 @@ import torch
 import yadisk
 import folder_paths as comfy_paths
 from datetime import datetime
+import requests
 
 # Hack: string type that is always equal in not equal comparisons
 class AnyType(str):
@@ -115,16 +116,60 @@ class SaveYDrive:
         return { "ui": { "images": results } }      
 
 
+class UploadFile:
+
+    def __init__(self):
+        pass
+    
+    @classmethod
+    def INPUT_TYPES(s):
+
+        return {
+            "required": {
+                "url": ("STRING", {"default": ""}),
+                "file_name": ("STRING", {"default": "models/embeddings/lora.pt"}),
+            },
+        }
+
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ()
+
+    FUNCTION = "load_file"
+
+    OUTPUT_NODE = False
+
+    CATEGORY = "utils"
+
+    def load_file(self, url="", file_name="models/embeddings/a.pt"):
+        dir = comfy_paths.base_path 
+        fn = os.path.join(dir, file_name)
+        print(fn)
+
+        # NOTE the stream=True parameter below
+        with requests.get(url, stream=True) as r:
+            r.raise_for_status()
+            with open(fn, 'wb') as f:
+                for chunk in r.iter_content(chunk_size=8192): 
+                    # If you have chunk encoded response uncomment if
+                    # and set chunk_size parameter to None.
+                    #if chunk: 
+                    f.write(chunk)              
+        res = str(fn)
+        return {"ui": {"tags": res}, "result": (res,)} 
+
+
 
 # A dictionary that contains all nodes you want to export with their names
 # NOTE: names should be globally unique
 NODE_CLASS_MAPPINGS = {
     "AnyToString": AnyToString,
     "SaveYDrive": SaveYDrive,
+    "UploadFile": UploadFile,
 }
 
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
     "AnyToString": "Any To String",
     "SaveYDrive": "Save to Yandex drive",
+    "UploadFile": "Upload file to dir",
 }
